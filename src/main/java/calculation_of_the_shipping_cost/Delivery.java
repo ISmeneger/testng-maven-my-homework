@@ -31,7 +31,7 @@ public class Delivery {
         if (destinationDistance > 30) return 300;
         if (destinationDistance > 10) return 200;
         if (destinationDistance > 2) return 100;
-        if (destinationDistance >=0) return 50;
+        if (destinationDistance > 0) return 50;
         throw new IllegalArgumentException("destinationDistance should be a positive number!");
     }
 

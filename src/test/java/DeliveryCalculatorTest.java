@@ -4,40 +4,33 @@ import calculation_of_the_shipping_cost.ServiceWorkload;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-
+import static calculation_of_the_shipping_cost.CargoDimension.LARGE;
+import static calculation_of_the_shipping_cost.CargoDimension.SMALL;
 import static calculation_of_the_shipping_cost.ServiceWorkload.*;
 
 public class DeliveryCalculatorTest {
     @Test(groups = "positive", description = "Расчет стоимости минимальной доставки")
     void testMinDeliveryCost() {
-        Delivery delivery = new Delivery(1, CargoDimension.LARGE, false, INCREASED);
+        Delivery delivery = new Delivery(1, LARGE, false, INCREASED);
         Assert.assertEquals(delivery.calculateDeliveryCost(), 400);
     }
 
-    @Test(groups = "positive", description = "Проверка расчета стоимости доставки в зависимости от расстояния")
-    void testDistanceBasedDeliveryPrice() {
-        Delivery delivery_1 = new Delivery(5, CargoDimension.SMALL, false, ServiceWorkload.NORMAL);
-        Assert.assertEquals(delivery_1.calculateDeliveryCost(), 400);
-        Delivery delivery_2 = new Delivery(15, CargoDimension.SMALL, false, HIGH);
-        Assert.assertEquals(delivery_2.calculateDeliveryCost(), 420);
-        Delivery delivery_3 = new Delivery(35, CargoDimension.SMALL, false, VERY_HIGH);
-        Assert.assertEquals(delivery_3.calculateDeliveryCost(), 640);
+    @Test(groups = "positive", description = "Проверка расчета стоимости доставки в зависимости от расстояния", dataProvider = "distanceDelivery")
+    void testDistanceBasedDeliveryPriceParametrized(int distance, ServiceWorkload serviceWorkload, double expectedDeliveryCost) {
+        Delivery delivery = new Delivery(distance, SMALL, false, serviceWorkload);
+        Assert.assertEquals(delivery.calculateDeliveryCost(), expectedDeliveryCost);
     }
 
-    @Test(groups = "positive", description = "Проверка расчета стоимости доставки в зависимости от размеров")
-    void testSizeBasedDeliveryPrice() {
-        Delivery delivery_1 = new Delivery(5, CargoDimension.LARGE, false, ServiceWorkload.NORMAL);
-        Assert.assertEquals(delivery_1.calculateDeliveryCost(), 400);
-        Delivery delivery_2 = new Delivery(15, CargoDimension.LARGE, false, INCREASED);
-        Assert.assertEquals(delivery_2.calculateDeliveryCost(), 480);
-        Delivery delivery_3 = new Delivery(35, CargoDimension.LARGE, false, VERY_HIGH);
-        Assert.assertEquals(delivery_3.calculateDeliveryCost(), 800);
+    @Test(groups = "positive", description = "Проверка расчета стоимости доставки в зависимости от размеров", dataProvider = "sizeBasedDelivery")
+    void testSizeBasedDeliveryPriceParametrized(int distance, CargoDimension cargoDimension, double expectedDeliveryCost) {
+        Delivery delivery = new Delivery(distance, cargoDimension, false, ServiceWorkload.NORMAL);
+        Assert.assertEquals(delivery.calculateDeliveryCost(), expectedDeliveryCost);
     }
 
     @Test(groups = "positive", description = "Проверка расчета стоимости доставки в зависимости от загруженности",
             dataProvider = "loadBasedDataMethod")
     void testLoadBasedDeliveryPrice(ServiceWorkload deliveryServiceWorkload, int expectedCost) {
-        Delivery delivery = new Delivery(15, CargoDimension.LARGE, true, deliveryServiceWorkload);
+        Delivery delivery = new Delivery(15, LARGE, true, deliveryServiceWorkload);
         Assert.assertEquals(expectedCost, delivery.calculateDeliveryCost());
     }
 
@@ -45,17 +38,34 @@ public class DeliveryCalculatorTest {
             dataProvider = "negativeDistanceDataMethod",
             expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "destinationDistance should be a positive number!")
     void testNegativeDistanceOrderCost(int distance) {
-        Delivery delivery = new Delivery(-1, CargoDimension.SMALL, false, ServiceWorkload.NORMAL);
+        Delivery delivery = new Delivery(distance, SMALL, false, ServiceWorkload.NORMAL);
         delivery.calculateDeliveryCost();
 
     }
 
-    @Test(groups = "negative", description = "Проверка расчета стоимости доставки в зависимости от хрупкости и на расстояние более 30 км",
-            expectedExceptions = UnsupportedOperationException.class,
-            expectedExceptionsMessageRegExp = "Fragile cargo cannot be delivered for the distance more than 30")
+    @Test(groups = "negative", description = "Проверка расчета стоимости доставки в зависимости от хрупкости и на расстояние более 30 км")
     void testFragileBasedDeliveryPrice() {
-        Delivery delivery = new Delivery(35, CargoDimension.SMALL, true, ServiceWorkload.NORMAL);
-        delivery.calculateDeliveryCost();
+        Delivery delivery = new Delivery(35, SMALL, true, ServiceWorkload.NORMAL);
+        Assert.assertThrows(UnsupportedOperationException.class, delivery::calculateDeliveryCost);
+
+    }
+
+    @DataProvider(name = "distanceDelivery")
+    public Object[][] distanceBasedDeliveryMethod() {
+        return new Object[][] {
+                {5, NORMAL, 400},
+                {15, HIGH, 420},
+                {35, VERY_HIGH, 640}
+        };
+    }
+
+    @DataProvider(name = "sizeBasedDelivery")
+    public Object[][] sizeBasedDeliveryDataMethod() {
+        return new Object[][] {
+                {5, LARGE, 400},
+                {15, SMALL, 400},
+                {35, LARGE, 500}
+        };
     }
 
     @DataProvider
